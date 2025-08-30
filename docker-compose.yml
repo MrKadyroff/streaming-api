@@ -1,0 +1,21 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: StreamApi
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:8080"
+      # ваши секреты/строки подключения лучше вынести в .env
+      # CONNECTIONSTRINGS__DEFAULT: "Host=...;Database=...;Username=...;Password=..."
+    ports:
+      - "5001:8080" # хост:контейнер (changed from 5000 because host port was in use)
+    volumes: []
+    healthcheck:
+      # curl preferred inside container; wget also will work
+      test: [ "CMD", "sh", "-c", "(curl -sSf http://127.0.0.1:8080/health || wget -qO- http://127.0.0.1:8080/health)" ]
+      interval: 20s
+      timeout: 3s
+      retries: 3

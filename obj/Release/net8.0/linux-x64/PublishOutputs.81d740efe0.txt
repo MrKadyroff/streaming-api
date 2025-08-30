@@ -1,0 +1,4 @@
+/Users/mr.kadyroff/Desktop/petProjects/sportApi/artifacts/linux-x64/appsettings.Development.json
+/Users/mr.kadyroff/Desktop/petProjects/sportApi/artifacts/linux-x64/appsettings.json
+/Users/mr.kadyroff/Desktop/petProjects/sportApi/artifacts/linux-x64/StreamApi.pdb
+/Users/mr.kadyroff/Desktop/petProjects/sportApi/artifacts/linux-x64/StreamApi
