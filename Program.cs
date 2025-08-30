@@ -1,6 +1,7 @@
 using Microsoft.OpenApi.Models;
 using StreamApi.Options;
 using StreamApi.Services;
+using StreamApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+builder.Services.Configure<PublishKeys>(builder.Configuration.GetSection("PublishKeys"));
 
 var app = builder.Build();
 

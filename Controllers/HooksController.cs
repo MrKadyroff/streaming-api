@@ -8,9 +8,9 @@ namespace StreamApi.Controllers;
 [Route("stream")]
 public class HooksController : ControllerBase
 {
-    private readonly PublishKeys _keys;
+    private readonly StreamApi.Options.PublishKeys _keys;
 
-    public HooksController(IOptions<PublishKeys> keys)
+    public HooksController(IOptions<StreamApi.Options.PublishKeys> keys)
     {
         _keys = keys.Value;
     }
