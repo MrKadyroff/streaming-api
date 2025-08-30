@@ -1,8 +1,9 @@
-// Controllers/RtmpHooksController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
-using StreamApi.Options;
+using Microsoft.AspNetCore.Authorization;
+
+public class PublishKeys { public Dictionary<string, string> Keys { get; set; } = new(); }
 
 public record RtmpHookRequest(
     string? call, string? app, string? name, string? addr, string? clientid,
@@ -16,43 +17,39 @@ public class RtmpHooksController : ControllerBase
     public RtmpHooksController(IOptions<PublishKeys> keys) => _keys = keys;
 
     [HttpPost("on_publish")]
+    [AllowAnonymous]
     public IActionResult OnPublish([FromForm] RtmpHookRequest req)
     {
-        // 1) разберём publicId и query из name / args / tcurl
+        // publicId и query из name?/args/tcurl
         var publicId = req.name ?? "";
         var query = req.args ?? "";
 
-        var qIdx = publicId.IndexOf('?', StringComparison.Ordinal);
-        if (qIdx >= 0)
-        {
-            if (string.IsNullOrEmpty(query)) query = publicId[(qIdx + 1)..];
-            publicId = publicId[..qIdx];
-        }
+        var i = publicId.IndexOf('?', StringComparison.Ordinal);
+        if (i >= 0) { if (string.IsNullOrEmpty(query)) query = publicId[(i + 1)..]; publicId = publicId[..i]; }
 
         if (string.IsNullOrEmpty(query) && !string.IsNullOrEmpty(req.tcurl))
         {
-            // tcurl типа rtmp://host/live?key=ABC123
             var uri = new Uri(req.tcurl, UriKind.Absolute);
             query = uri.Query.TrimStart('?');
         }
 
-        if (string.IsNullOrWhiteSpace(publicId)) return Forbid();
+        if (string.IsNullOrWhiteSpace(publicId)) return StatusCode(403);
 
         var q = QueryHelpers.ParseQuery(query ?? "");
         var key = q.TryGetValue("key", out var v) ? v.ToString()
                 : q.TryGetValue("token", out v) ? v.ToString()
                 : null;
 
-        if (string.IsNullOrEmpty(key)) return Forbid();
+        if (string.IsNullOrEmpty(key)) return StatusCode(403);
 
-        // 2) сравнение
-        if (_keys.Value.TryGetValue(publicId, out var expected) &&
+        if (_keys.Value.Keys.TryGetValue(publicId, out var expected) &&
             string.Equals(expected, key, StringComparison.Ordinal))
             return Ok();
 
-        return Forbid();
+        return StatusCode(403);
     }
 
     [HttpPost("on_publish_done")]
-    public IActionResult OnPublishDone() => Ok();
+    [AllowAnonymous]
+    public IActionResult OnPublishDone([FromForm] RtmpHookRequest req) => Ok();
 }
