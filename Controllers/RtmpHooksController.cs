@@ -2,25 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
-using System.Collections.Generic;
-using StreamApi.Options;
 
-namespace StreamApi.Controllers;
-
-// Use PublishKeys from StreamApi.Options (Dictionary<string,string>)
+public class PublishKeys { public Dictionary<string, string> Keys { get; set; } = new(); }
 
 public record RtmpHookRequest(
-    string? call,
-    string? app,
-    string? name,
-    string? addr,
-    string? clientid,
-    string? flashver,
-    string? pageurl,
-    string? swfurl,
-    string? tcurl,
-    string? args // здесь будет key=FOOT2025
-);
+    string? call, string? app, string? name, string? addr, string? clientid,
+    string? flashver, string? pageurl, string? swfurl, string? tcurl, string? args);
 
 [ApiController]
 [Route("hooks/rtmp")]
@@ -32,23 +19,41 @@ public class RtmpHooksController : ControllerBase
     [HttpPost("on_publish")]
     public IActionResult OnPublish([FromForm] RtmpHookRequest req)
     {
-        if (string.IsNullOrWhiteSpace(req.name))
-            return Forbid(); // нет публичного id
+        // 1) разберём publicId и query из name / args / tcurl
+        var publicId = req.name ?? "";
+        var query = req.args ?? "";
 
-        var q = QueryHelpers.ParseQuery(req.args ?? "");
-        if (!q.TryGetValue("key", out var keyFromReq))
-            return Forbid(); // нет ключа
-
-        if (_keys.Value.TryGetValue(req.name, out var expected) &&
-            string.Equals(expected, keyFromReq.ToString(), StringComparison.Ordinal))
+        var qIdx = publicId.IndexOf('?', StringComparison.Ordinal);
+        if (qIdx >= 0)
         {
-            return Ok(); // опубликовать разрешено
+            if (string.IsNullOrEmpty(query)) query = publicId[(qIdx + 1)..];
+            publicId = publicId[..qIdx];
         }
 
-        return Forbid(); // неверный ключ
+        if (string.IsNullOrEmpty(query) && !string.IsNullOrEmpty(req.tcurl))
+        {
+            // tcurl типа rtmp://host/live?key=ABC123
+            var uri = new Uri(req.tcurl, UriKind.Absolute);
+            query = uri.Query.TrimStart('?');
+        }
+
+        if (string.IsNullOrWhiteSpace(publicId)) return Forbid();
+
+        var q = QueryHelpers.ParseQuery(query ?? "");
+        var key = q.TryGetValue("key", out var v) ? v.ToString()
+                : q.TryGetValue("token", out v) ? v.ToString()
+                : null;
+
+        if (string.IsNullOrEmpty(key)) return Forbid();
+
+        // 2) сравнение
+        if (_keys.Value.Keys.TryGetValue(publicId, out var expected) &&
+            string.Equals(expected, key, StringComparison.Ordinal))
+            return Ok();
+
+        return Forbid();
     }
 
     [HttpPost("on_publish_done")]
-    public IActionResult OnPublishDone([FromForm] RtmpHookRequest req)
-        => Ok();
+    public IActionResult OnPublishDone() => Ok();
 }
