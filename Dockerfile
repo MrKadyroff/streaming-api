@@ -31,9 +31,10 @@ RUN apt-get update \
 # Copy published app from build stage
 COPY --from=build /app/publish ./
 
-# Create a non-root user and give ownership of /app
-RUN useradd -m appuser \
-    && chown -R appuser:appuser /app
+# Ensure HLS directory exists and has correct owner, then create non-root user
+RUN mkdir -p /var/www/hls \
+    && useradd -m appuser \
+    && chown -R appuser:appuser /app /var/www/hls
 USER appuser
 
 # Port inside the container

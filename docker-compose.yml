@@ -12,7 +12,8 @@ services:
       # CONNECTIONSTRINGS__DEFAULT: "Host=...;Database=...;Username=...;Password=..."
     ports:
       - "5001:8080" # хост:контейнер (changed from 5000 because host port was in use)
-    volumes: []
+    volumes:
+      - ./hls:/var/www/hls
     healthcheck:
       # curl preferred inside container; wget also will work
       test: [ "CMD", "sh", "-c", "(curl -sSf http://127.0.0.1:8080/health || wget -qO- http://127.0.0.1:8080/health)" ]
