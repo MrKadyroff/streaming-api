@@ -2,8 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
-
-public class PublishKeys { public Dictionary<string, string> Keys { get; set; } = new(); }
+using StreamApi.Options;
 
 public record RtmpHookRequest(
     string? call, string? app, string? name, string? addr, string? clientid,
@@ -47,7 +46,7 @@ public class RtmpHooksController : ControllerBase
         if (string.IsNullOrEmpty(key)) return Forbid();
 
         // 2) сравнение
-        if (_keys.Value.Keys.TryGetValue(publicId, out var expected) &&
+        if (_keys.Value.TryGetValue(publicId, out var expected) &&
             string.Equals(expected, key, StringComparison.Ordinal))
             return Ok();
 
