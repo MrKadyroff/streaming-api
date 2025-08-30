@@ -1,3 +1,5 @@
-namespace StreamApi.Options;
+namespace StreamApi.Options
+{
 
-public class PublishKeys : Dictionary<string, string> { }
+    public class PublishKeys : Dictionary<string, string> { }
+}

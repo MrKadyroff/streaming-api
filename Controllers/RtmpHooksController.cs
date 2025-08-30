@@ -1,4 +1,3 @@
-// Controllers/RtmpHooksController.cs
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
@@ -15,18 +14,18 @@ public record RtmpHookRequest(
 [Route("hooks/rtmp")]
 public class RtmpHooksController : ControllerBase
 {
-    private readonly IOptions<StreamApi.Options.PublishKeys> _keys;
+    private readonly IOptions<PublishKeys> _keys;  // <— обращаемся к нашему словарю
 
-    public RtmpHooksController(IOptions<StreamApi.Options.PublishKeys> keys) => _keys = keys;
+    public RtmpHooksController(IOptions<PublishKeys> keys) => _keys = keys;
 
     [HttpPost("on_publish")]
     [AllowAnonymous]
     public IActionResult OnPublish([FromForm] RtmpHookRequest req)
     {
-        // 1) publicId и query вытаскиваем из name?/args/tcurl
         var publicId = req.name ?? "";
         var query = req.args ?? "";
 
+        // name может прийти как "stream1?key=..."
         var qi = publicId.IndexOf('?', StringComparison.Ordinal);
         if (qi >= 0)
         {
@@ -34,9 +33,9 @@ public class RtmpHooksController : ControllerBase
             publicId = publicId[..qi];
         }
 
+        // или ключ в tcurl: rtmp://host/live?key=...
         if (string.IsNullOrEmpty(query) && !string.IsNullOrEmpty(req.tcurl))
         {
-            // tcurl: rtmp://HOST/live?key=...
             var uri = new Uri(req.tcurl, UriKind.Absolute);
             query = uri.Query.TrimStart('?');
         }
@@ -50,7 +49,7 @@ public class RtmpHooksController : ControllerBase
 
         if (string.IsNullOrEmpty(key)) return StatusCode(403);
 
-        // Используем PublishKeys (словарь) напрямую
+        // ТЕПЕРЬ TryGetValue есть у _keys.Value
         if (_keys.Value.TryGetValue(publicId, out var expected) &&
             string.Equals(expected, key, StringComparison.Ordinal))
             return Ok();

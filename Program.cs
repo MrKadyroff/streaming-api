@@ -29,7 +29,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
-builder.Services.Configure<PublishKeys>(builder.Configuration.GetSection("PublishKeys"));
 
 var app = builder.Build();
 

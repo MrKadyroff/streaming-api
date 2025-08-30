@@ -1,4 +1,7 @@
-public class PublishKeys
+
+
+namespace StreamApi.Options
 {
-    public Dictionary<string, string> Keys { get; set; } = new();
+    // ВАЖНО: наследуемся от Dictionary<string,string>
+    public class PublishKeys : Dictionary<string, string> { }
 }
