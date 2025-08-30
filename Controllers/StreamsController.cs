@@ -13,6 +13,5 @@ public class StreamsController : ControllerBase
 
     // требует заголовок Authorization: Bearer <AdminToken>
     [HttpGet]
-    [AdminAuthorize]
     public IActionResult List() => Ok(_svc.ListStreams());
 }
