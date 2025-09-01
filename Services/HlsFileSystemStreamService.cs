@@ -16,38 +16,75 @@ public class HlsFileSystemStreamService : IStreamService
     public IEnumerable<StreamInfoDto> ListStreams()
     {
         var root = _opts.Root;
-        if (!Directory.Exists(root))
+        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
             return Enumerable.Empty<StreamInfoDto>();
 
-        var threshold = TimeSpan.FromSeconds(Math.Max(1, _opts.ActiveThresholdSeconds));
         var now = DateTimeOffset.UtcNow;
+        var threshold = TimeSpan.FromSeconds(Math.Max(1, _opts.ActiveThresholdSeconds));
 
-        if (_opts.FlatLayout)
+        var results = new List<StreamInfoDto>();
+
+        // NESTED: /root/<name>/index.m3u8
+        foreach (var dir in Directory.EnumerateDirectories(root, "*", SearchOption.TopDirectoryOnly))
         {
-            // /var/www/hls/<name>.m3u8
-            var files = Directory.EnumerateFiles(root, "*.m3u8", SearchOption.TopDirectoryOnly);
-            return files.Select(f =>
-            {
-                var name = Path.GetFileNameWithoutExtension(f);
-                var info = new FileInfo(f);
-                var updated = info.LastWriteTimeUtc;
-                var active = (now - updated).TotalSeconds < threshold.TotalSeconds;
-                return new StreamInfoDto(name, $"/hls/{name}.m3u8", updated, active);
-            }).OrderByDescending(x => x.UpdatedUtc);
+            var idx = Path.Combine(dir, "index.m3u8");
+            if (!File.Exists(idx)) continue;
+
+            var name = Path.GetFileName(dir);
+            var last = GetNewestTimestamp(dir, idx); // свежий .ts или сам индекс
+            var active = (now - last) <= threshold;
+
+            results.Add(new StreamInfoDto(
+                Name: name,
+                Playlist: $"/hls/{name}/index.m3u8", // предполагается nginx: location /hls { alias /var/www/hls; }
+                UpdatedUtc: last,
+                Active: active
+            ));
         }
-        else
+
+        // FLAT: /root/<name>.m3u8
+        foreach (var p in Directory.EnumerateFiles(root, "*.m3u8", SearchOption.TopDirectoryOnly))
         {
-            // /var/www/hls/<name>/index.m3u8
-            var files = Directory.EnumerateFiles(root, "index.m3u8", SearchOption.AllDirectories);
-            return files.Select(idx =>
+            // чтобы не дублировать потоки, пропустим index.m3u8 из nested
+            if (string.Equals(Path.GetFileName(p), "index.m3u8", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var name = Path.GetFileNameWithoutExtension(p);
+            var dir = Path.GetDirectoryName(p)!;
+            var last = GetNewestTimestamp(dir, p);
+            var active = (now - last) <= threshold;
+
+            // если этот name уже добавлен из nested — оставим самый свежий
+            var existing = results.FirstOrDefault(x => x.Name == name);
+            var dto = new StreamInfoDto(name, $"/hls/{name}.m3u8", last, active);
+
+            if (existing is null) results.Add(dto);
+            else if (dto.UpdatedUtc > existing.UpdatedUtc)
             {
-                var dir = Path.GetDirectoryName(idx)!;
-                var name = Path.GetFileName(dir);
-                var info = new FileInfo(idx);
-                var updated = info.LastWriteTimeUtc;
-                var active = (now - updated).TotalSeconds < threshold.TotalSeconds;
-                return new StreamInfoDto(name, $"/hls/{name}/index.m3u8", updated, active);
-            }).OrderByDescending(x => x.UpdatedUtc);
+                results.Remove(existing);
+                results.Add(dto);
+            }
+        }
+
+        return results
+            //.Where(s => s.IsActive) // <- если хотите показывать только активные, раскомментируйте
+            .OrderByDescending(s => s.UpdatedUtc);
+
+        // локальный хелпер
+        static DateTimeOffset GetNewestTimestamp(string folder, string fallbackFile)
+        {
+            DateTimeOffset newest = new(File.GetLastWriteTimeUtc(fallbackFile), TimeSpan.Zero);
+            try
+            {
+                var tsNewest = Directory.EnumerateFiles(folder, "*.ts", SearchOption.TopDirectoryOnly)
+                    .Select(f => new DateTimeOffset(File.GetLastWriteTimeUtc(f), TimeSpan.Zero))
+                    .DefaultIfEmpty(newest)
+                    .Max();
+                if (tsNewest > newest) newest = tsNewest;
+            }
+            catch { /* ignore */ }
+            return newest;
         }
     }
+
 }
