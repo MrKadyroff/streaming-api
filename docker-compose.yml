@@ -8,6 +8,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
       ASPNETCORE_URLS: "http://+:8080"
+      POSTGRES_DB: sportdb
+      POSTGRES_USER: master
+      POSTGRES_PASSWORD: strongpass
       # ваши секреты/строки подключения лучше вынести в .env
       # CONNECTIONSTRINGS__DEFAULT: "Host=...;Database=...;Username=...;Password=..."
     ports:
@@ -20,3 +23,5 @@ services:
       interval: 20s
       timeout: 3s
       retries: 3
+    db:
+      image: postgres:16
