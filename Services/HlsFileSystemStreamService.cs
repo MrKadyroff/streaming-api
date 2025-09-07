@@ -1,90 +1,86 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
-using StreamApi.Models;
-using StreamApi.Options;
+using Models.DTO;
 
-namespace StreamApi.Services;
-
-public class HlsFileSystemStreamService : IStreamService
+namespace Services
 {
-    private readonly HlsOptions _opts;
-
-    public HlsFileSystemStreamService(IOptions<HlsOptions> opts)
+    public class HlsFileSystemStreamService : IStreamService
     {
-        _opts = opts.Value;
-    }
+        private readonly string _root;
+        private readonly int _activeThresholdSeconds;
 
-    public IEnumerable<StreamInfoDto> ListStreams()
-    {
-        var root = _opts.Root;
-        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
-            return Enumerable.Empty<StreamInfoDto>();
-
-        var now = DateTimeOffset.UtcNow;
-        var threshold = TimeSpan.FromSeconds(Math.Max(1, _opts.ActiveThresholdSeconds));
-
-        var results = new List<StreamInfoDto>();
-
-        // NESTED: /root/<name>/index.m3u8
-        foreach (var dir in Directory.EnumerateDirectories(root, "*", SearchOption.TopDirectoryOnly))
+        public HlsFileSystemStreamService(IOptions<StreamApi.Options.HlsOptions> opts)
         {
-            var idx = Path.Combine(dir, "index.m3u8");
-            if (!File.Exists(idx)) continue;
-
-            var name = Path.GetFileName(dir);
-            var last = GetNewestTimestamp(dir, idx); // свежий .ts или сам индекс
-            var active = (now - last) <= threshold;
-
-            results.Add(new StreamInfoDto(
-                Name: name,
-                Playlist: $"/hls/{name}/index.m3u8", // предполагается nginx: location /hls { alias /var/www/hls; }
-                UpdatedUtc: last,
-                Active: active
-            ));
+            _root = opts.Value.Root;
+            _activeThresholdSeconds = opts.Value.ActiveThresholdSeconds;
         }
 
-        // FLAT: /root/<name>.m3u8
-        foreach (var p in Directory.EnumerateFiles(root, "*.m3u8", SearchOption.TopDirectoryOnly))
+        public async Task<(IEnumerable<StreamInfoDto> Streams, int Total)> GetAllAsync(int page, int limit, string? status)
         {
-            // чтобы не дублировать потоки, пропустим index.m3u8 из nested
-            if (string.Equals(Path.GetFileName(p), "index.m3u8", StringComparison.OrdinalIgnoreCase))
-                continue;
+            // Синхронная файловая логика, обернутая в Task.Run
+            var streams = await Task.Run(() => ListStreams());
+            var filtered = streams;
+            if (!string.IsNullOrEmpty(status))
+                filtered = filtered.Where(s => string.Equals(s.Status, status, StringComparison.OrdinalIgnoreCase));
+            var total = filtered.Count();
+            var paged = filtered.Skip((page - 1) * limit).Take(limit);
+            return (paged, total);
+        }
 
-            var name = Path.GetFileNameWithoutExtension(p);
-            var dir = Path.GetDirectoryName(p)!;
-            var last = GetNewestTimestamp(dir, p);
-            var active = (now - last) <= threshold;
+        private IEnumerable<StreamInfoDto> ListStreams()
+        {
+            if (string.IsNullOrWhiteSpace(_root) || !Directory.Exists(_root))
+                return Enumerable.Empty<StreamInfoDto>();
 
-            // если этот name уже добавлен из nested — оставим самый свежий
-            var existing = results.FirstOrDefault(x => x.Name == name);
-            var dto = new StreamInfoDto(name, $"/hls/{name}.m3u8", last, active);
+            var now = DateTimeOffset.UtcNow;
+            var threshold = TimeSpan.FromSeconds(Math.Max(1, _activeThresholdSeconds));
+            var results = new List<StreamInfoDto>();
 
-            if (existing is null) results.Add(dto);
-            else if (dto.UpdatedUtc > existing.UpdatedUtc)
+            foreach (var dir in Directory.EnumerateDirectories(_root, "*", SearchOption.TopDirectoryOnly))
             {
-                results.Remove(existing);
-                results.Add(dto);
+                var idx = Path.Combine(dir, "index.m3u8");
+                if (!File.Exists(idx)) continue;
+                var name = Path.GetFileName(dir);
+                var last = GetNewestTimestamp(dir, idx);
+                var active = (now - last) <= threshold;
+                results.Add(new StreamInfoDto
+                {
+                    Title = name,
+                    Status = active ? "live" : "finished",
+                    Viewers = 0,
+                    StreamUrl = $"/hls/{name}/index.m3u8",
+                    FallbackUrl = null,
+                    StartTime = last.UtcDateTime,
+                    Quality = new List<string> { "auto" }
+                });
+            }
+            return results.OrderByDescending(s => s.StartTime);
+
+            static DateTimeOffset GetNewestTimestamp(string folder, string fallbackFile)
+            {
+                DateTimeOffset newest = new(File.GetLastWriteTimeUtc(fallbackFile), TimeSpan.Zero);
+                try
+                {
+                    var tsNewest = Directory.EnumerateFiles(folder, "*.ts", SearchOption.TopDirectoryOnly)
+                        .Select(f => new DateTimeOffset(File.GetLastWriteTimeUtc(f), TimeSpan.Zero))
+                        .DefaultIfEmpty(newest)
+                        .Max();
+                    if (tsNewest > newest) newest = tsNewest;
+                }
+                catch { /* ignore */ }
+                return newest;
             }
         }
 
-        return results
-            //.Where(s => s.IsActive) // <- если хотите показывать только активные, раскомментируйте
-            .OrderByDescending(s => s.UpdatedUtc);
-
-        // локальный хелпер
-        static DateTimeOffset GetNewestTimestamp(string folder, string fallbackFile)
-        {
-            DateTimeOffset newest = new(File.GetLastWriteTimeUtc(fallbackFile), TimeSpan.Zero);
-            try
-            {
-                var tsNewest = Directory.EnumerateFiles(folder, "*.ts", SearchOption.TopDirectoryOnly)
-                    .Select(f => new DateTimeOffset(File.GetLastWriteTimeUtc(f), TimeSpan.Zero))
-                    .DefaultIfEmpty(newest)
-                    .Max();
-                if (tsNewest > newest) newest = tsNewest;
-            }
-            catch { /* ignore */ }
-            return newest;
-        }
+        public Task<StreamInfoDto?> GetByIdAsync(int id) => throw new NotImplementedException();
+        public Task<StreamInfoDto> CreateAsync(CreateStreamDto dto) => throw new NotImplementedException();
+        public Task<bool> UpdateAsync(int id, CreateStreamDto dto) => throw new NotImplementedException();
+        public Task<bool> DeleteAsync(int id) => throw new NotImplementedException();
+        public Task<bool> StartStreamAsync(int id) => throw new NotImplementedException();
+        public Task<bool> StopStreamAsync(int id) => throw new NotImplementedException();
     }
-
 }

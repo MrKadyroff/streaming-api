@@ -1,75 +1,60 @@
-
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using StreamApi.Filters;
-using StreamApi.Options;
-using StreamApi.Services;
+using Services;
+using Models.DTO;
 
-namespace StreamApi.Controllers;
-
-[ApiController]
-[Route("streams")]
-public class StreamsController : ControllerBase
+namespace Controllers
 {
-    private readonly IStreamService _svc;
-    public StreamsController(IStreamService svc) => _svc = svc;
-
-    // требует заголовок Authorization: Bearer <AdminToken>
-    [HttpGet]
-    public IActionResult List() => Ok(_svc.ListStreams());
-
-
-    [HttpGet("debug")]
-    public IActionResult Debug(
-        [FromServices] IOptions<HlsOptions> opts,
-        [FromServices] ILogger<StreamsController> log)
+    [ApiController]
+    [Route("api/admin/streams")]
+    public class StreamsController : ControllerBase
     {
-        var root = opts.Value.Root;
-        var active = opts.Value.ActiveThresholdSeconds;
-        var flat = (opts.Value as dynamic)?.FlatLayout; // если есть
+        private readonly IStreamService _service;
+        public StreamsController(IStreamService service) => _service = service;
 
-        var exists = !string.IsNullOrWhiteSpace(root) && Directory.Exists(root);
-
-        string[] m3u8Top = Array.Empty<string>();
-        string[] tsTop = Array.Empty<string>();
-        string[] dirsTop = Array.Empty<string>();
-        string rootPerms = "";
-
-        try
+        [HttpGet]
+        public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int limit = 20, [FromQuery] string? status = null)
         {
-            if (exists)
-            {
-                m3u8Top = Directory.EnumerateFiles(root, "*.m3u8", SearchOption.AllDirectories)
-                                   .Take(10).Select(p => p.Replace(root, "")).ToArray();
-                tsTop = Directory.EnumerateFiles(root, "*.ts", SearchOption.AllDirectories)
-                                 .Take(10).Select(p => p.Replace(root, "")).ToArray();
-                dirsTop = Directory.EnumerateDirectories(root, "*", SearchOption.TopDirectoryOnly)
-                                   .Take(10).Select(p => p.Replace(root, "")).ToArray();
-                var di = new DirectoryInfo(root);
-                rootPerms = di.Exists ? di.Attributes.ToString() : "missing";
-            }
-        }
-        catch (Exception ex)
-        {
-            log.LogError(ex, "Debug listing failed for {Root}", root);
-            return Problem($"Listing failed for {root}: {ex.Message}");
+            var (streams, total) = await _service.GetAllAsync(page, limit, status);
+            return Ok(new { streams, total, page, totalPages = (int)Math.Ceiling((double)total / limit) });
         }
 
-        return Ok(new
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateStreamDto dto)
         {
-            HlsRoot = root,
-            RootExists = exists,
-            ActiveThresholdSeconds = active,
-            FlatLayout = flat,
-            M3U8Count = exists ? Directory.EnumerateFiles(root, "*.m3u8", SearchOption.AllDirectories).Count() : 0,
-            TSCount = exists ? Directory.EnumerateFiles(root, "*.ts", SearchOption.AllDirectories).Count() : 0,
-            DirsTop = dirsTop,
-            M3u8Top = m3u8Top,
-            TsTop = tsTop,
-            User = Environment.UserName,
-            WorkDir = Environment.CurrentDirectory,
-            RootAttrs = rootPerms
-        });
+            var stream = await _service.CreateAsync(dto);
+            return Ok(new { success = true, stream });
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] CreateStreamDto dto)
+        {
+            var ok = await _service.UpdateAsync(id, dto);
+            if (!ok) return NotFound();
+            return Ok(new { success = true, message = "Трансляция обновлена" });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var ok = await _service.DeleteAsync(id);
+            if (!ok) return NotFound();
+            return Ok(new { success = true, message = "Трансляция удалена" });
+        }
+
+        [HttpPost("{id}/start")]
+        public async Task<IActionResult> Start(int id)
+        {
+            var ok = await _service.StartStreamAsync(id);
+            if (!ok) return NotFound();
+            return Ok(new { success = true, message = "Трансляция запущена" });
+        }
+
+        [HttpPost("{id}/stop")]
+        public async Task<IActionResult> Stop(int id)
+        {
+            var ok = await _service.StopStreamAsync(id);
+            if (!ok) return NotFound();
+            return Ok(new { success = true, message = "Трансляция остановлена" });
+        }
     }
-
 }

@@ -1,17 +1,30 @@
+
 using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore;
 using StreamApi.Options;
-using StreamApi.Services;
 using StreamApi.Models;
+using Models;
+using Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Services
+builder.Services.AddScoped<Services.IReportService, Services.ReportService>();
 
 // Options
 builder.Services.Configure<HlsOptions>(builder.Configuration.GetSection("Hls"));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
 builder.Services.Configure<PublishKeys>(builder.Configuration.GetSection("PublishKeys"));
 
+// EF Core
+builder.Services.AddDbContext<Models.AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db"));
+
 // Services
-builder.Services.AddScoped<IStreamService, HlsFileSystemStreamService>();
+builder.Services.AddScoped<Services.IAdService, Services.AdService>();
+builder.Services.AddScoped<Services.IStreamService, Services.StreamService>();
+builder.Services.AddScoped<Services.IUserService, Services.UserService>();
+builder.Services.AddScoped<Services.IMatchService, Services.MatchService>();
 
 // MVC / Swagger / CORS
 builder.Services.AddControllers();

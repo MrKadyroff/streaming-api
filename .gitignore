@@ -1,0 +1,48 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.vs/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Rider
+.idea/
+*.sln.iml
+
+# Logs
+*.log
+
+# User secrets
+secrets.json
+
+# Build results
+*.dll
+*.exe
+*.pdb
+*.cache
+*.db
+*.db-shm
+*.db-wal
+
+# Publish
+publish/
+
+# Test results
+TestResults/
+
+# Others
+*.swp
+*.bak
+*.tmp
+*.old
+*.orig
+*.rej
+
+# VS Code
+.vscode/
