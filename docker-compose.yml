@@ -23,5 +23,3 @@ services:
       interval: 20s
       timeout: 3s
       retries: 3
-    db:
-      image: postgres:16
