@@ -18,7 +18,7 @@ builder.Services.Configure<PublishKeys>(builder.Configuration.GetSection("Publis
 
 // EF Core
 builder.Services.AddDbContext<Models.AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Services
 builder.Services.AddScoped<Services.IAdService, Services.AdService>();

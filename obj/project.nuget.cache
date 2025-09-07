@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "A7TszfduZ9U=",
+  "dgSpecHash": "GIyDBf+j8cs=",
   "success": true,
   "projectFilePath": "/Users/mr.kadyroff/Desktop/petProjects/sportApi/StreamApi.csproj",
   "expectedPackageFiles": [
@@ -35,6 +35,8 @@
     "/Users/mr.kadyroff/.nuget/packages/microsoft.extensions.primitives/9.0.8/microsoft.extensions.primitives.9.0.8.nupkg.sha512",
     "/Users/mr.kadyroff/.nuget/packages/microsoft.openapi/1.2.3/microsoft.openapi.1.2.3.nupkg.sha512",
     "/Users/mr.kadyroff/.nuget/packages/mono.texttemplating/3.0.0/mono.texttemplating.3.0.0.nupkg.sha512",
+    "/Users/mr.kadyroff/.nuget/packages/npgsql/9.0.3/npgsql.9.0.3.nupkg.sha512",
+    "/Users/mr.kadyroff/.nuget/packages/npgsql.entityframeworkcore.postgresql/9.0.4/npgsql.entityframeworkcore.postgresql.9.0.4.nupkg.sha512",
     "/Users/mr.kadyroff/.nuget/packages/sqlitepclraw.bundle_e_sqlite3/2.1.10/sqlitepclraw.bundle_e_sqlite3.2.1.10.nupkg.sha512",
     "/Users/mr.kadyroff/.nuget/packages/sqlitepclraw.core/2.1.10/sqlitepclraw.core.2.1.10.nupkg.sha512",
     "/Users/mr.kadyroff/.nuget/packages/sqlitepclraw.lib.e_sqlite3/2.1.10/sqlitepclraw.lib.e_sqlite3.2.1.10.nupkg.sha512",
