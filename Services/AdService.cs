@@ -49,7 +49,7 @@ namespace Services
                 Position = dto.Position,
                 ImageUrl = dto.ImageUrl,
                 ClickUrl = dto.ClickUrl,
-                Status = "pending",
+                Status = "active",
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
                 Priority = dto.Priority,

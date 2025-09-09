@@ -33,6 +33,9 @@ namespace Services
 
         private IEnumerable<StreamInfoDto> ListStreams()
         {
+            Console.WriteLine($"HLS Root: {_root}");
+            Console.WriteLine($"Directory exists: {Directory.Exists(_root)}");
+
             if (string.IsNullOrWhiteSpace(_root) || !Directory.Exists(_root))
                 return Enumerable.Empty<StreamInfoDto>();
 
@@ -40,13 +43,21 @@ namespace Services
             var threshold = TimeSpan.FromSeconds(Math.Max(1, _activeThresholdSeconds));
             var results = new List<StreamInfoDto>();
 
-            foreach (var dir in Directory.EnumerateDirectories(_root, "*", SearchOption.TopDirectoryOnly))
+            var directories = Directory.EnumerateDirectories(_root, "*", SearchOption.TopDirectoryOnly).ToList();
+            Console.WriteLine($"Found directories: {string.Join(", ", directories)}");
+
+            foreach (var dir in directories)
             {
                 var idx = Path.Combine(dir, "index.m3u8");
+                Console.WriteLine($"Checking: {idx}, exists: {File.Exists(idx)}");
+
                 if (!File.Exists(idx)) continue;
                 var name = Path.GetFileName(dir);
                 var last = GetNewestTimestamp(dir, idx);
                 var active = (now - last) <= threshold;
+
+                Console.WriteLine($"Stream: {name}, Last: {last}, Active: {active}");
+
                 results.Add(new StreamInfoDto
                 {
                     Title = name,
