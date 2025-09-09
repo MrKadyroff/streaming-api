@@ -14,5 +14,6 @@ namespace Services
         Task<bool> DeactivateAsync(int id);
         Task<AdDto?> GetByIdAsync(int id);
         Task<object?> GetStatsAsync(int id, string? period);
+        Task<bool> IncrementClicksAsync(int id);
     }
 }

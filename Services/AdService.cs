@@ -152,5 +152,19 @@ namespace Services
                 }
             };
         }
+
+        public async Task<bool> IncrementClicksAsync(int id)
+        {
+            var ad = await _db.Ads.FindAsync(id);
+            if (ad == null) return false;
+
+            ad.Clicks++;
+            // Обновляем CTR (Click Through Rate) = Clicks / Views
+            if (ad.Views > 0)
+                ad.Ctr = (double)ad.Clicks / ad.Views;
+
+            await _db.SaveChangesAsync();
+            return true;
+        }
     }
 }

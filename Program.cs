@@ -25,6 +25,7 @@ builder.Services.AddScoped<Services.IAdService, Services.AdService>();
 builder.Services.AddScoped<Services.IStreamService, Services.StreamService>();
 builder.Services.AddScoped<Services.IUserService, Services.UserService>();
 builder.Services.AddScoped<Services.IMatchService, Services.MatchService>();
+builder.Services.AddScoped<Services.HlsFileSystemStreamService>();
 
 // MVC / Swagger / CORS
 builder.Services.AddControllers();
