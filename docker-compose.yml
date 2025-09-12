@@ -10,7 +10,7 @@ services:
       ASPNETCORE_URLS: "http://+:8080"
       POSTGRES_DB: sportdb
       POSTGRES_USER: master
-      POSTGRES_PASSWORD: strongpass
+      POSTGRES_PASSWORD: sport_cast
       # ваши секреты/строки подключения лучше вынести в .env
       # CONNECTIONSTRINGS__DEFAULT: "Host=...;Database=...;Username=...;Password=..."
     ports:
