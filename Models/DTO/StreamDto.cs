@@ -5,10 +5,10 @@ namespace Models.DTO
 {
     public class StreamInfoDto
     {
-        public int Id { get; set; }
+        public int? Id { get; set; }
         public string? Title { get; set; }
         public string? Status { get; set; }
-        public int Viewers { get; set; }
+        public int? Viewers { get; set; }
         public string? StreamUrl { get; set; }
         public string? FallbackUrl { get; set; }
         public DateTime? StartTime { get; set; }
