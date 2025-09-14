@@ -18,6 +18,13 @@ namespace Controllers
             return Ok(new { streams, total, page, totalPages = (int)Math.Ceiling((double)total / limit) });
         }
 
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllFull()
+        {
+            var items = await _service.GetAllFullAsync();
+            return Ok(new { streams = items });
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateStreamDto dto)
         {

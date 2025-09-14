@@ -35,6 +35,11 @@ namespace Services
             return (streams, total);
         }
 
+        public async Task<IEnumerable<Models.Entities.Stream>> GetAllFullAsync()
+        {
+            return await _db.Streams.AsNoTracking().ToListAsync();
+        }
+
         public async Task<Models.DTO.StreamInfoDto?> GetByIdAsync(int id)
         {
             var s = await _db.Streams.FindAsync(id);

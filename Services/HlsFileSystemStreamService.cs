@@ -8,7 +8,7 @@ using Models.DTO;
 
 namespace Services
 {
-    public class HlsFileSystemStreamService : IStreamService
+    public class HlsFileSystemStreamService
     {
         private readonly string _root;
         private readonly int _activeThresholdSeconds;

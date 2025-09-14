@@ -14,5 +14,6 @@ namespace Services
         Task<bool> DeleteAsync(int id);
         Task<bool> StartStreamAsync(int id);
         Task<bool> StopStreamAsync(int id);
+        Task<IEnumerable<Models.Entities.Stream>> GetAllFullAsync();
     }
 }
