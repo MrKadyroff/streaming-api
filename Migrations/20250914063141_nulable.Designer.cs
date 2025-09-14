@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Models;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace StreamApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250914063141_nulable")]
+    partial class nulable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,13 +37,13 @@ namespace StreamApi.Migrations
                     b.Property<string>("ClickUrl")
                         .HasColumnType("text");
 
-                    b.Property<int>("Clicks")
+                    b.Property<int?>("Clicks")
                         .HasColumnType("integer");
 
-                    b.Property<double>("Ctr")
+                    b.Property<double?>("Ctr")
                         .HasColumnType("double precision");
 
-                    b.Property<DateTimeOffset?>("EndDate")
+                    b.Property<DateTime?>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ImageUrl")
@@ -52,7 +55,7 @@ namespace StreamApi.Migrations
                     b.Property<int?>("Priority")
                         .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset?>("StartDate")
+                    b.Property<DateTime?>("StartDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Status")
@@ -67,7 +70,7 @@ namespace StreamApi.Migrations
                     b.Property<string>("Type")
                         .HasColumnType("text");
 
-                    b.Property<int>("Views")
+                    b.Property<int?>("Views")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");

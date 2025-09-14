@@ -56,16 +56,16 @@ namespace Services
         {
             var stream = new Models.Entities.Stream
             {
-                Title = dto.Title,
-                Description = dto.Description,
-                StreamUrl = dto.StreamUrl,
-                FallbackUrl = dto.FallbackUrl,
+                Title = dto.Title ?? "",
+                Description = dto.Description ?? "",
+                StreamUrl = dto.StreamUrl ?? "",
+                FallbackUrl = dto.FallbackUrl ?? "",
                 ScheduledTime = dto.ScheduledTime,
                 Status = "upcoming",
-                Sport = dto.Sport,
-                Tournament = dto.Tournament,
-                HomeTeam = dto.HomeTeam,
-                AwayTeam = dto.AwayTeam,
+                Sport = dto.Sport ?? "",
+                Tournament = dto.Tournament ?? "",
+                HomeTeam = dto.HomeTeam ?? "",
+                AwayTeam = dto.AwayTeam ?? "",
                 CreatedAt = DateTime.UtcNow,
                 Quality = new List<string> { "1080p", "720p", "480p" }
             };
@@ -88,15 +88,15 @@ namespace Services
         {
             var s = await _db.Streams.FindAsync(id);
             if (s == null) return false;
-            s.Title = dto.Title;
-            s.Description = dto.Description;
-            s.StreamUrl = dto.StreamUrl;
-            s.FallbackUrl = dto.FallbackUrl;
-            s.ScheduledTime = dto.ScheduledTime;
-            s.Sport = dto.Sport;
-            s.Tournament = dto.Tournament;
-            s.HomeTeam = dto.HomeTeam;
-            s.AwayTeam = dto.AwayTeam;
+            s.Title = dto.Title ?? s.Title;
+            s.Description = dto.Description ?? s.Description;
+            s.StreamUrl = dto.StreamUrl ?? s.StreamUrl;
+            s.FallbackUrl = dto.FallbackUrl ?? s.FallbackUrl;
+            s.ScheduledTime = dto.ScheduledTime ?? s.ScheduledTime;
+            s.Sport = dto.Sport ?? s.Sport;
+            s.Tournament = dto.Tournament ?? s.Tournament;
+            s.HomeTeam = dto.HomeTeam ?? s.HomeTeam;
+            s.AwayTeam = dto.AwayTeam ?? s.AwayTeam;
             await _db.SaveChangesAsync();
             return true;
         }

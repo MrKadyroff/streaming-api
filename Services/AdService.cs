@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,59 +13,106 @@ namespace Services
         private readonly AppDbContext _db;
         public AdService(AppDbContext db) => _db = db;
 
+        // ---- TZ/UTC helpers ----
+        // Пытаемся использовать целевую таймзону для "без оффсета" дат (например, пользователь вводит 01.01.2025 14:30).
+        // На Linux id "Asia/Almaty", на Windows он тоже доступен в новых версиях .NET. Если нет — падаем на Local.
+        private static readonly TimeZoneInfo? DefaultTz =
+            TryGetTz("Asia/Almaty") ?? TimeZoneInfo.Local;
+
+        private static TimeZoneInfo? TryGetTz(string id)
+        {
+            try { return TimeZoneInfo.FindSystemTimeZoneById(id); }
+            catch { return null; }
+        }
+
+        private static DateTime EnsureUtc(DateTime value)
+        {
+            return value.Kind switch
+            {
+                DateTimeKind.Utc => value,
+                DateTimeKind.Local => value.ToUniversalTime(),
+                DateTimeKind.Unspecified => // трактуем как время в DefaultTz -> переводим в UTC
+                    TimeZoneInfo.ConvertTimeToUtc(
+                        DateTime.SpecifyKind(value, DateTimeKind.Unspecified),
+                        DefaultTz ?? TimeZoneInfo.Local),
+                _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+            };
+        }
+
+        private static DateTime EnsureUtcOr(DateTime? value, DateTime utcDefault)
+            => value.HasValue ? EnsureUtc(value.Value) : utcDefault;
+
         public async Task<(IEnumerable<AdDto> Ads, int Total)> GetAllAsync(string? type, string? status)
         {
-            var query = _db.Ads.AsQueryable();
-            if (!string.IsNullOrEmpty(type))
+            var query = _db.Ads.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(type))
                 query = query.Where(a => a.Type == type);
-            if (!string.IsNullOrEmpty(status))
+
+            if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(a => a.Status == status);
+
             var total = await query.CountAsync();
-            var ads = await query.Select(a => new AdDto
-            {
-                Id = a.Id,
-                Title = a.Title,
-                Type = a.Type,
-                Position = a.Position,
-                ImageUrl = a.ImageUrl,
-                ClickUrl = a.ClickUrl,
-                Status = a.Status,
-                Views = a.Views,
-                Clicks = a.Clicks,
-                Ctr = a.Ctr,
-                StartDate = a.StartDate,
-                EndDate = a.EndDate,
-                Priority = a.Priority,
-                TargetAudience = a.TargetAudience
-            }).ToListAsync();
+
+            var ads = await query
+                .Select(a => new AdDto
+                {
+                    Id = a.Id,
+                    Title = a.Title,
+                    Type = a.Type,
+                    Position = a.Position,
+                    ImageUrl = a.ImageUrl,
+                    ClickUrl = a.ClickUrl,
+                    Status = a.Status,
+                    Views = a.Views,
+                    Clicks = a.Clicks,
+                    Ctr = a.Ctr,
+                    // Npgsql вернёт UTC DateTime для timestamptz
+                    StartDate = a.StartDate,
+                    EndDate = a.EndDate,
+                    Priority = a.Priority,
+                    TargetAudience = a.TargetAudience
+                })
+                .ToListAsync();
+
             return (ads, total);
         }
 
         public async Task<AdDto> CreateAsync(CreateAdDto dto)
         {
+            var nowUtc = DateTime.UtcNow;
+            var defaultEndUtc = nowUtc.AddDays(30);
+
             var ad = new Models.Entities.Ad
             {
-                Title = dto.Title,
-                Type = dto.Type,
-                Position = dto.Position,
-                ImageUrl = dto.ImageUrl,
-                ClickUrl = dto.ClickUrl,
+                Title = dto.Title ?? "",
+                Type = dto.Type ?? "",
+                Position = dto.Position ?? "",
+                ImageUrl = dto.ImageUrl ?? "",
+                ClickUrl = dto.ClickUrl ?? "",
                 Status = "active",
+
+                // КРИТИЧНО: нормализуем к UTC перед сохранением
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
-                Priority = dto.Priority,
-                TargetAudience = dto.TargetAudience,
+
+                Priority = dto.Priority ?? 0,
+                TargetAudience = dto.TargetAudience ?? "",
                 Views = 0,
                 Clicks = 0,
                 Ctr = 0
             };
+
             _db.Ads.Add(ad);
             await _db.SaveChangesAsync();
+
             return new AdDto
             {
                 Id = ad.Id,
                 Title = ad.Title,
-                Status = ad.Status
+                Status = ad.Status,
+                StartDate = ad.StartDate,
+                EndDate = ad.EndDate
             };
         }
 
@@ -72,15 +120,22 @@ namespace Services
         {
             var ad = await _db.Ads.FindAsync(id);
             if (ad == null) return false;
-            ad.Title = dto.Title;
-            ad.Type = dto.Type;
-            ad.Position = dto.Position;
-            ad.ImageUrl = dto.ImageUrl;
-            ad.ClickUrl = dto.ClickUrl;
-            ad.StartDate = dto.StartDate;
-            ad.EndDate = dto.EndDate;
-            ad.Priority = dto.Priority;
-            ad.TargetAudience = dto.TargetAudience;
+
+            ad.Title = dto.Title ?? ad.Title;
+            ad.Type = dto.Type ?? ad.Type;
+            ad.Position = dto.Position ?? ad.Position;
+            ad.ImageUrl = dto.ImageUrl ?? ad.ImageUrl;
+            ad.ClickUrl = dto.ClickUrl ?? ad.ClickUrl;
+
+            if (dto.StartDate.HasValue)
+                ad.StartDate = dto.StartDate.Value;
+
+            if (dto.EndDate.HasValue)
+                ad.EndDate = dto.EndDate.Value;
+
+            ad.Priority = dto.Priority ?? ad.Priority;
+            ad.TargetAudience = dto.TargetAudience ?? ad.TargetAudience;
+
             await _db.SaveChangesAsync();
             return true;
         }
@@ -89,6 +144,7 @@ namespace Services
         {
             var ad = await _db.Ads.FindAsync(id);
             if (ad == null) return false;
+
             _db.Ads.Remove(ad);
             await _db.SaveChangesAsync();
             return true;
@@ -98,6 +154,7 @@ namespace Services
         {
             var ad = await _db.Ads.FindAsync(id);
             if (ad == null) return false;
+
             ad.Status = "active";
             await _db.SaveChangesAsync();
             return true;
@@ -107,6 +164,7 @@ namespace Services
         {
             var ad = await _db.Ads.FindAsync(id);
             if (ad == null) return false;
+
             ad.Status = "inactive";
             await _db.SaveChangesAsync();
             return true;
@@ -114,8 +172,9 @@ namespace Services
 
         public async Task<AdDto?> GetByIdAsync(int id)
         {
-            var ad = await _db.Ads.FindAsync(id);
+            var ad = await _db.Ads.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
             if (ad == null) return null;
+
             return new AdDto
             {
                 Id = ad.Id,
@@ -128,7 +187,7 @@ namespace Services
                 Views = ad.Views,
                 Clicks = ad.Clicks,
                 Ctr = ad.Ctr,
-                StartDate = ad.StartDate,
+                StartDate = ad.StartDate, // уже UTC из БД
                 EndDate = ad.EndDate,
                 Priority = ad.Priority,
                 TargetAudience = ad.TargetAudience
@@ -137,9 +196,9 @@ namespace Services
 
         public async Task<object?> GetStatsAsync(int id, string? period)
         {
-            var ad = await _db.Ads.FindAsync(id);
+            var ad = await _db.Ads.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
             if (ad == null) return null;
-            // Пример: просто возвращаем текущие значения, можно расширить под реальные отчёты
+
             return new
             {
                 stats = new
@@ -147,8 +206,7 @@ namespace Services
                     views = ad.Views,
                     clicks = ad.Clicks,
                     ctr = ad.Ctr,
-                    revenue = 0,
-                    dailyStats = new[] { new { date = ad.StartDate.ToString("yyyy-MM-dd"), views = ad.Views, clicks = ad.Clicks } }
+                    revenue = 0
                 }
             };
         }
@@ -159,7 +217,6 @@ namespace Services
             if (ad == null) return false;
 
             ad.Clicks++;
-            // Обновляем CTR (Click Through Rate) = Clicks / Views
             if (ad.Views > 0)
                 ad.Ctr = (double)ad.Clicks / ad.Views;
 

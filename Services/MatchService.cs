@@ -15,12 +15,7 @@ namespace Services
         public async Task<(IEnumerable<MatchDto> Matches, int Total)> GetAllAsync(string? date, string? sport, string? status)
         {
             var query = _db.Matches.AsQueryable();
-            if (!string.IsNullOrEmpty(date))
-                query = query.Where(m => m.Date.ToString("yyyy-MM-dd") == date);
-            if (!string.IsNullOrEmpty(sport))
-                query = query.Where(m => m.Sport == sport);
-            if (!string.IsNullOrEmpty(status))
-                query = query.Where(m => m.Status == status);
+
             var total = await query.CountAsync();
             var matches = await query.Select(m => new MatchDto
             {
@@ -42,14 +37,14 @@ namespace Services
         {
             var match = new Models.Entities.Match
             {
-                HomeTeam = dto.HomeTeam,
-                AwayTeam = dto.AwayTeam,
-                Date = dto.Date,
-                Time = dto.Time,
-                Tournament = dto.Tournament,
-                Sport = dto.Sport,
+                HomeTeam = dto.HomeTeam ?? "",
+                AwayTeam = dto.AwayTeam ?? "",
+                Date = dto.Date ?? DateTime.UtcNow,
+                Time = dto.Time ?? "",
+                Tournament = dto.Tournament ?? "",
+                Sport = dto.Sport ?? "",
                 Status = "upcoming",
-                Venue = dto.Venue
+                Venue = dto.Venue ?? ""
             };
             _db.Matches.Add(match);
             await _db.SaveChangesAsync();
@@ -66,13 +61,13 @@ namespace Services
         {
             var match = await _db.Matches.FindAsync(id);
             if (match == null) return false;
-            match.HomeTeam = dto.HomeTeam;
-            match.AwayTeam = dto.AwayTeam;
-            match.Date = dto.Date;
-            match.Time = dto.Time;
-            match.Tournament = dto.Tournament;
-            match.Sport = dto.Sport;
-            match.Venue = dto.Venue;
+            match.HomeTeam = dto.HomeTeam ?? match.HomeTeam;
+            match.AwayTeam = dto.AwayTeam ?? match.AwayTeam;
+            match.Date = dto.Date ?? match.Date;
+            match.Time = dto.Time ?? match.Time;
+            match.Tournament = dto.Tournament ?? match.Tournament;
+            match.Sport = dto.Sport ?? match.Sport;
+            match.Venue = dto.Venue ?? match.Venue;
             await _db.SaveChangesAsync();
             return true;
         }
