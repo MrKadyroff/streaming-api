@@ -30,6 +30,8 @@ builder.Services.AddScoped<Services.IStreamService, Services.StreamService>();
 builder.Services.AddScoped<Services.IUserService, Services.UserService>();
 builder.Services.AddScoped<Services.IMatchService, Services.MatchService>();
 builder.Services.AddScoped<Services.HlsFileSystemStreamService>();
+builder.Services.AddSingleton<IOnlineTracker, OnlineTracker>();
+builder.Services.AddSignalR();
 
 // MVC / Swagger / CORS
 builder.Services.AddControllers();
@@ -57,7 +59,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 builder.Services.AddSingleton<IOnlineTracker, OnlineTracker>();
-builder.Services.AddSignalR();
+
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
 var app = builder.Build();
@@ -81,9 +83,10 @@ catch (Exception ex)
 {
     Console.WriteLine($"Swagger error: {ex.Message}");
 }
+app.MapHub<OnlineHub>("/hub/online");
+
 
 app.MapControllers();
-app.MapHub<OnlineHub>("/hub/online");
 
 // Добавляем endpoint для обработки ошибок
 app.Map("/error", () => "An error occurred");
