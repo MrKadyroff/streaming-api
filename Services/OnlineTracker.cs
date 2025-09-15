@@ -11,7 +11,6 @@ public interface IOnlineTracker
 public class OnlineTracker : IOnlineTracker
 {
     private readonly ConcurrentDictionary<string, byte> _conns = new();
-
     public int Add(string connectionId)
     {
         _conns.TryAdd(connectionId, 0);

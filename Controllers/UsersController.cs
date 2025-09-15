@@ -9,7 +9,13 @@ namespace Controllers
     public class UsersController : ControllerBase
     {
         private readonly IUserService _service;
-        public UsersController(IUserService service) => _service = service;
+        private readonly IOnlineTracker _tracker;
+
+        public UsersController(IUserService service, IOnlineTracker tracker)
+        {
+            _service = service;
+            _tracker = tracker;
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] string? role = null, [FromQuery] string? status = null)
@@ -32,6 +38,13 @@ namespace Controllers
             var ok = await _service.UnbanAsync(id);
             if (!ok) return NotFound();
             return Ok(new { success = true, message = "Пользователь разблокирован" });
+        }
+
+        [HttpGet("online-count")]
+        public IActionResult GetOnlineCount()
+        {
+            var count = _tracker.Count;
+            return Ok(new { onlineCount = count });
         }
     }
 }
