@@ -56,6 +56,8 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer"
     });
 });
+builder.Services.AddSingleton<IOnlineTracker, OnlineTracker>();
+builder.Services.AddSignalR();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
 var app = builder.Build();
@@ -81,6 +83,7 @@ catch (Exception ex)
 }
 
 app.MapControllers();
+app.MapHub<OnlineHub>("/hub/online");
 
 // Добавляем endpoint для обработки ошибок
 app.Map("/error", () => "An error occurred");

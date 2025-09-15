@@ -13,6 +13,7 @@ namespace Models
         public DbSet<Models.Entities.Ad> Ads { get; set; }
         public DbSet<Models.Entities.Match> Matches { get; set; }
         public DbSet<Models.Entities.Report> Reports { get; set; }
+        public DbSet<UserCounter> UserCounters { get; set; }
         // TODO: Add DbSet for other entities (Settings, etc.)
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
