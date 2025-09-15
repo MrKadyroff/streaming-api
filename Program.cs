@@ -31,7 +31,12 @@ builder.Services.AddScoped<Services.IUserService, Services.UserService>();
 builder.Services.AddScoped<Services.IMatchService, Services.MatchService>();
 builder.Services.AddScoped<Services.HlsFileSystemStreamService>();
 builder.Services.AddSingleton<IOnlineTracker, OnlineTracker>();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(o =>
+{
+    o.KeepAliveInterval = TimeSpan.FromSeconds(15);   // сервер шлёт ping каждые 15с
+    o.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // если 60с нет пингов от клиента — разрыв
+    o.HandshakeTimeout = TimeSpan.FromSeconds(15);
+});
 
 // MVC / Swagger / CORS
 builder.Services.AddControllers();
@@ -83,6 +88,10 @@ catch (Exception ex)
 {
     Console.WriteLine($"Swagger error: {ex.Message}");
 }
+app.UseWebSockets(new WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromSeconds(10)
+});
 app.MapHub<OnlineHub>("/hub/online");
 
 
