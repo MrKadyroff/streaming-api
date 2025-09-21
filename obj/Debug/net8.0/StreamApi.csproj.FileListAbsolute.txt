@@ -161,3 +161,4 @@
 /Users/mr.kadyroff/Desktop/petProjects/sportApi/bin/Debug/net8.0/runtimes/browser/lib/net8.0/System.Text.Encodings.Web.dll
 /Users/mr.kadyroff/Desktop/petProjects/sportApi/bin/Debug/net8.0/Npgsql.dll
 /Users/mr.kadyroff/Desktop/petProjects/sportApi/bin/Debug/net8.0/Npgsql.EntityFrameworkCore.PostgreSQL.dll
+/Users/mr.kadyroff/Desktop/petProjects/sportApi/bin/Debug/net8.0/StreamApi.staticwebassets.runtime.json

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Models;
 using Models.DTO;
@@ -116,6 +118,58 @@ namespace Services
             };
         }
 
+        public async Task<AdDto> CreateWithFileAsync(CreateAdWithFileDto dto)
+        {
+            var nowUtc = DateTime.UtcNow;
+            string? imageUrl = null;
+
+            // Если есть файл, загружаем его
+            if (dto.ImageFile != null)
+            {
+                imageUrl = await UploadGifAsync(dto.ImageFile);
+            }
+
+            var ad = new Models.Entities.Ad
+            {
+                Title = dto.Title ?? "",
+                Type = dto.Type ?? "",
+                Position = dto.Position ?? "",
+                ImageUrl = imageUrl ?? dto.ImageUrl ?? "",
+                ClickUrl = dto.ClickUrl ?? "",
+                Status = "active",
+
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate,
+
+                Priority = dto.Priority ?? 0,
+                TargetAudience = dto.TargetAudience ?? "",
+                Views = 0,
+                Clicks = 0,
+                Ctr = 0
+            };
+
+            _db.Ads.Add(ad);
+            await _db.SaveChangesAsync();
+
+            return new AdDto
+            {
+                Id = ad.Id,
+                Title = ad.Title,
+                Type = ad.Type,
+                Position = ad.Position,
+                ImageUrl = ad.ImageUrl,
+                ClickUrl = ad.ClickUrl,
+                Status = ad.Status,
+                Views = ad.Views,
+                Clicks = ad.Clicks,
+                Ctr = ad.Ctr,
+                StartDate = ad.StartDate,
+                EndDate = ad.EndDate,
+                Priority = ad.Priority,
+                TargetAudience = ad.TargetAudience
+            };
+        }
+
         public async Task<bool> UpdateAsync(int id, CreateAdDto dto)
         {
             var ad = await _db.Ads.FindAsync(id);
@@ -222,6 +276,40 @@ namespace Services
 
             await _db.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<string> UploadGifAsync(IFormFile gifFile)
+        {
+            if (gifFile == null || gifFile.Length == 0)
+                throw new ArgumentException("Файл не может быть пустым");
+
+            // Проверяем тип файла
+            var allowedTypes = new[] { "image/gif", "image/png", "image/jpeg", "image/jpg" };
+            if (!allowedTypes.Contains(gifFile.ContentType.ToLower()))
+                throw new ArgumentException("Поддерживаются только GIF, PNG, JPG файлы");
+
+            // Проверяем размер файла (максимум 10MB)
+            if (gifFile.Length > 10 * 1024 * 1024)
+                throw new ArgumentException("Размер файла не должен превышать 10MB");
+
+            // Создаем папку если её нет
+            var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "ads");
+            if (!Directory.Exists(uploadsDir))
+                Directory.CreateDirectory(uploadsDir);
+
+            // Генерируем уникальное имя файла
+            var fileExtension = Path.GetExtension(gifFile.FileName);
+            var fileName = $"{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadsDir, fileName);
+
+            // Сохраняем файл
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await gifFile.CopyToAsync(fileStream);
+            }
+
+            // Возвращаем URL для фронтенда
+            return $"/images/ads/{fileName}";
         }
     }
 }

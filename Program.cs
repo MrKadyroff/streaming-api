@@ -72,6 +72,9 @@ var app = builder.Build();
 // Добавляем обработку исключений
 app.UseExceptionHandler("/error");
 
+// Настройка статических файлов для изображений
+app.UseStaticFiles();
+
 app.UseCors();
 app.UseRouting();
 

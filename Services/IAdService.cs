@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Models.DTO;
 
 namespace Services
@@ -8,6 +9,7 @@ namespace Services
     {
         Task<(IEnumerable<AdDto> Ads, int Total)> GetAllAsync(string? type, string? status);
         Task<AdDto> CreateAsync(CreateAdDto dto);
+        Task<AdDto> CreateWithFileAsync(CreateAdWithFileDto dto);
         Task<bool> UpdateAsync(int id, CreateAdDto dto);
         Task<bool> DeleteAsync(int id);
         Task<bool> ActivateAsync(int id);
@@ -15,5 +17,6 @@ namespace Services
         Task<AdDto?> GetByIdAsync(int id);
         Task<object?> GetStatsAsync(int id, string? period);
         Task<bool> IncrementClicksAsync(int id);
+        Task<string> UploadGifAsync(IFormFile gifFile);
     }
 }

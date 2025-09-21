@@ -25,6 +25,24 @@ namespace Controllers
             return Ok(new { success = true, ad });
         }
 
+        [HttpPost("with-file")]
+        public async Task<IActionResult> CreateWithFile([FromForm] CreateAdWithFileDto dto)
+        {
+            try
+            {
+                var ad = await _service.CreateWithFileAsync(dto);
+                return Ok(new { success = true, ad, message = "Реклама создана успешно" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Ошибка при создании рекламы: " + ex.Message });
+            }
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateAdDto dto)
         {
@@ -63,6 +81,24 @@ namespace Controllers
             var stats = await _service.GetStatsAsync(id, period);
             if (stats == null) return NotFound();
             return Ok(stats);
+        }
+
+        [HttpPost("upload-gif")]
+        public async Task<IActionResult> UploadGif(IFormFile file)
+        {
+            try
+            {
+                var imageUrl = await _service.UploadGifAsync(file);
+                return Ok(new { success = true, imageUrl, message = "Изображение загружено успешно" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Ошибка при загрузке файла: " + ex.Message });
+            }
         }
     }
 }

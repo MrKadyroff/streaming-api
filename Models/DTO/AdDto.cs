@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 public record CreateAdDto(
     string? Title,
     string? Type,
@@ -9,6 +11,20 @@ public record CreateAdDto(
     int? Priority,
     string? TargetAudience
 );
+
+public class CreateAdWithFileDto
+{
+    public string? Title { get; set; }
+    public string? Type { get; set; }
+    public string? Position { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? ClickUrl { get; set; }
+    public DateTimeOffset? StartDate { get; set; }
+    public DateTimeOffset? EndDate { get; set; }
+    public int? Priority { get; set; }
+    public string? TargetAudience { get; set; }
+    public IFormFile? ImageFile { get; set; }
+}
 
 public class AdDto
 {
